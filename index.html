@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Game Face" />
+<meta name="theme-color" content="#1a1a2e" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Game Face</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --bg: #f9f9f7;
+  --surface: #ffffff;
+  --surface2: #f1f0ea;
+  --border: #e0e0d8;
+  --border2: #cccccc;
+  --text: #1a1a1a;
+  --text2: #555555;
+  --text3: #aaaaaa;
+  --blue: #185fa5;
+  --blue-bg: #e6f1fb;
+  --green: #0f6e56;
+  --green-bg: #e1f5ee;
+  --green-border: #1d9e75;
+  --purple: #534ab7;
+  --purple-bg: #eeedfe;
+  --purple-border: #afa9ec;
+  --purple-dark: #3c3489;
+  --orange: #854f0b;
+  --orange-bg: #faeeda;
+  --orange-border: #ba7517;
+  --leaf: #3b6d11;
+  --leaf-bg: #eaf3de;
+  --leaf-border: #639922;
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* PIN SCREEN */
+.pin-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; padding: 2rem; }
+.pin-logo { font-size: 48px; margin-bottom: 8px; }
+.pin-title { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 4px; letter-spacing: -0.5px; }
+.pin-subtitle { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 2.5rem; }
+.pin-label { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 12px; text-align: center; }
+.pin-dots { display: flex; gap: 14px; margin-bottom: 2rem; }
+.pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); background: transparent; transition: all 0.15s; }
+.pin-dot.filled { background: #fff; border-color: #fff; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; }
+.pin-btn { width: 72px; height: 72px; border-radius: 50%; border: none; background: rgba(255,255,255,0.1); color: #fff; font-size: 22px; font-weight: 500; cursor: pointer; transition: all 0.1s; display: flex; align-items: center; justify-content: center; }
+.pin-btn:active { background: rgba(255,255,255,0.25); transform: scale(0.95); }
+.pin-btn.del { font-size: 18px; background: transparent; }
+.pin-btn.zero { grid-column: 2; }
+.pin-error { font-size: 13px; color: #ff6b6b; margin-top: 1rem; min-height: 20px; text-align: center; }
+.pin-setup-note { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 1.5rem; text-align: center; max-width: 240px; line-height: 1.5; }
+.pin-screen.hidden { display: none; }
+
+/* MAIN APP */
+.app { display: none; min-height: 100vh; }
+.app.visible { display: block; }
+
+/* HEADER */
+.app-header { background: #1a1a2e; padding: 1rem 1.25rem 0; position: sticky; top: 0; z-index: 100; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.app-brand { display: flex; align-items: center; gap: 8px; }
+.app-brand-icon { font-size: 22px; }
+.app-brand-name { font-size: 18px; font-weight: 700; color: #fff; letter-spacing: -0.3px; }
+.lock-btn { background: rgba(255,255,255,0.1); border: none; color: rgba(255,255,255,0.6); font-size: 12px; padding: 6px 12px; border-radius: 20px; cursor: pointer; }
+.app-tabs { display: flex; gap: 4px; }
+.app-tab { flex: 1; padding: 10px 8px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.5); border: none; background: transparent; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.app-tab.active { color: #fff; border-bottom-color: #fff; }
+.add-tab { flex: 0 0 auto; padding: 10px 12px; font-size: 18px; color: rgba(255,255,255,0.3); border: none; background: transparent; cursor: pointer; }
+
+/* CONTENT */
+.tab-content { display: none; padding: 1.25rem 1rem; max-width: 560px; margin: 0 auto; }
+.tab-content.active { display: block; }
+
+/* SHARED COMPONENTS */
+.section-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+.card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.breakdown { background: var(--surface2); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+.breakdown-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 13px; }
+.breakdown-row .lbl { color: var(--text2); }
+.breakdown-row .amt { font-weight: 500; color: var(--text); }
+.breakdown-row.bonus .amt { color: var(--green); }
+.breakdown-row.completion-row .amt { color: var(--purple); }
+.breakdown-row.total { border-top: 0.5px solid var(--border2); margin-top: 6px; padding-top: 10px; }
+.breakdown-row.total .lbl { font-weight: 500; font-size: 14px; }
+.breakdown-row.total .amt { font-size: 18px; font-weight: 600; }
+.counter-wrap { display: flex; align-items: center; gap: 10px; }
+.cnt-btn { width: 36px; height: 36px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface2); font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; }
+.cnt-btn:active { transform: scale(0.95); }
+.cnt-val { font-size: 22px; font-weight: 500; min-width: 36px; text-align: center; }
+.cnt-hint { font-size: 12px; color: var(--text3); margin-left: 4px; }
+input[type=number] { width: 72px; font-size: 22px; font-weight: 500; text-align: center; padding: 8px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface); color: var(--text); }
+.toggle-row { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+.toggle-card { flex: 1; border: 0.5px solid var(--border); border-radius: 12px; padding: 14px 16px; cursor: pointer; background: var(--surface); }
+.toggle-card.active-win { border-color: var(--green-border); background: var(--green-bg); }
+.toggle-card.active-shutout { border-color: var(--blue); background: var(--blue-bg); }
+.toggle-lbl { font-size: 12px; color: var(--text3); margin-bottom: 4px; }
+.toggle-val { font-size: 13px; font-weight: 500; color: var(--text); }
+.toggle-card.active-win .toggle-lbl, .toggle-card.active-win .toggle-val { color: var(--green); }
+.toggle-card.active-shutout .toggle-lbl, .toggle-card.active-shutout .toggle-val { color: var(--blue); }
+.completion-banner { border: 0.5px solid var(--purple-border); background: var(--purple-bg); border-radius: 12px; padding: 14px 16px; cursor: pointer; margin-bottom: 1.25rem; }
+.completion-banner.active { border-color: var(--purple); background: #cecbf6; }
+.completion-banner .toggle-lbl { color: var(--purple); font-size: 12px; margin-bottom: 4px; }
+.completion-banner .toggle-val { color: var(--purple-dark); font-size: 13px; font-weight: 500; }
+.summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 1.5rem; }
+.summary-card { background: var(--surface2); border-radius: 8px; padding: 10px 12px; }
+.summary-card .s-lbl { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.summary-card .s-val { font-size: 20px; font-weight: 500; }
+.grand-total-card { background: var(--purple-bg); border: 0.5px solid var(--purple-border); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+.grand-total-card .gt-lbl { font-size: 13px; color: var(--purple); }
+.grand-total-card .gt-val { font-size: 26px; font-weight: 600; color: var(--purple-dark); }
+.payout-btn { width: 100%; padding: 13px; border: none; border-radius: 10px; background: var(--purple); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 1.5rem; }
+.payout-btn:active { opacity: 0.85; transform: scale(0.99); }
+.audit-empty { font-size: 13px; color: var(--text3); text-align: center; padding: 1.5rem 0; }
+.audit-entry { background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; }
+.audit-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.audit-title { font-size: 13px; font-weight: 500; }
+.audit-date { font-size: 11px; color: var(--text3); }
+.audit-amount { font-size: 18px; font-weight: 600; color: var(--purple); margin-bottom: 3px; }
+.audit-detail { font-size: 11px; color: var(--text3); line-height: 1.6; }
+
+/* GAME TABS (hockey) */
+.game-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+.gtab { padding: 6px 13px; border: 0.5px solid var(--border2); border-radius: 8px; font-size: 13px; cursor: pointer; background: var(--surface); color: var(--text2); }
+.gtab.active { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); font-weight: 500; }
+
+/* REWARD GRID (baseball) */
+.reward-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
+.reward-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.reward-card.pitching { background: #f0f7ff; border-color: #b5d4f4; }
+.reward-name { font-size: 12px; color: var(--text3); margin-bottom: 6px; }
+.reward-card.pitching .reward-name { color: var(--blue); }
+.r-btn { width: 30px; height: 30px; border: 0.5px solid var(--border2); border-radius: 6px; background: var(--surface2); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text); flex-shrink: 0; }
+.r-btn:active { transform: scale(0.95); }
+.r-count { font-size: 20px; font-weight: 500; min-width: 28px; text-align: center; }
+.r-value { font-size: 11px; color: var(--text3); margin-left: auto; white-space: nowrap; }
+.reward-controls { display: flex; align-items: center; gap: 8px; }
+.hit-type-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.hit-type-btn { flex: 1; padding: 7px 4px; border: 0.5px solid var(--border2); border-radius: 8px; font-size: 12px; cursor: pointer; background: var(--surface); color: var(--text2); text-align: center; }
+.hit-type-btn.active { background: var(--leaf-bg); color: var(--leaf); border-color: var(--leaf-border); font-weight: 500; }
+.hit-source-row { display: flex; gap: 8px; }
+.hit-source-btn { flex: 1; padding: 7px 4px; border: 0.5px solid var(--border2); border-radius: 8px; font-size: 12px; cursor: pointer; background: var(--surface); color: var(--text2); text-align: center; }
+.hit-source-btn.active { background: var(--orange-bg); color: var(--orange); border-color: var(--orange-border); font-weight: 500; }
+.add-hit-btn { width: 100%; margin-top: 10px; padding: 10px; border: 0.5px solid var(--leaf-border); border-radius: 8px; background: var(--leaf-bg); color: var(--leaf); font-size: 14px; font-weight: 500; cursor: pointer; }
+.hit-preview { font-size: 12px; color: var(--text3); text-align: center; margin-top: 6px; min-height: 18px; }
+.save-pct { font-size: 12px; color: var(--text3); text-align: right; margin-bottom: 1.25rem; margin-top: -0.5rem; min-height: 18px; }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 1rem; }
+.modal-overlay.hidden { display: none; }
+.modal { background: var(--surface); border-radius: 16px; padding: 1.5rem; max-width: 320px; width: 100%; }
+.modal h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
+.modal p { font-size: 14px; color: var(--text2); margin-bottom: 1.25rem; line-height: 1.5; }
+.modal-amount { font-size: 32px; font-weight: 600; color: var(--purple); text-align: center; margin-bottom: 1.25rem; }
+.modal-btns { display: flex; gap: 10px; }
+.modal-cancel { flex: 1; padding: 10px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface); font-size: 14px; cursor: pointer; color: var(--text2); }
+.modal-confirm { flex: 2; padding: 10px; border: none; border-radius: 8px; background: var(--purple); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* HOW IT WORKS */
+details { margin-bottom: 1.25rem; }
+details summary { font-size: 13px; color: var(--text3); cursor: pointer; user-select: none; padding: 2px 0; }
+details[open] summary { color: var(--text); font-weight: 500; margin-bottom: 8px; }
+.how-box { border: 0.5px solid var(--border); border-radius: 12px; padding: 12px 16px; }
+.how-row { font-size: 13px; color: var(--text2); padding: 3px 0; display: flex; justify-content: space-between; gap: 8px; }
+.how-r { font-weight: 500; color: var(--text); }
+
+/* SYNCING INDICATOR */
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; display: inline-block; margin-right: 5px; }
+.sync-dot.syncing { background: #facc15; animation: pulse 1s infinite; }
+.sync-dot.error { background: #f87171; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.sync-status { font-size: 11px; color: rgba(255,255,255,0.5); display: flex; align-items: center; }
+
+/* NAV GAME */
+.game-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+.nav-btn { width: 34px; height: 34px; border: 0.5px solid var(--border2); border-radius: 8px; background: var(--surface); font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.nav-btn:active { transform: scale(0.95); }
+.game-num-label { font-size: 15px; font-weight: 500; }
+
+/* REWARD CURRENCY TAG */
+.currency-tag { display: inline-block; background: var(--purple-bg); color: var(--purple); border-radius: 6px; font-size: 11px; font-weight: 500; padding: 2px 8px; margin-left: 6px; vertical-align: middle; }
+
+/* LOADING */
+.loading-screen { position: fixed; inset: 0; background: #1a1a2e; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; }
+.loading-screen.hidden { display: none; }
+.loading-logo { font-size: 52px; margin-bottom: 12px; }
+.loading-title { font-size: 26px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+.loading-msg { font-size: 13px; color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-logo">🏆</div>
+  <div class="loading-title">Game Face</div>
+  <div class="loading-msg">Loading...</div>
+</div>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen hidden" id="pin-screen">
+  <div class="pin-logo">🏆</div>
+  <div class="pin-title">Game Face</div>
+  <div class="pin-subtitle">Track every win, earn every reward</div>
+  <div class="pin-label" id="pin-label">Enter PIN</div>
+  <div class="pin-dots" id="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1</button>
+    <button class="pin-btn" onclick="pinPress('2')">2</button>
+    <button class="pin-btn" onclick="pinPress('3')">3</button>
+    <button class="pin-btn" onclick="pinPress('4')">4</button>
+    <button class="pin-btn" onclick="pinPress('5')">5</button>
+    <button class="pin-btn" onclick="pinPress('6')">6</button>
+    <button class="pin-btn" onclick="pinPress('7')">7</button>
+    <button class="pin-btn" onclick="pinPress('8')">8</button>
+    <button class="pin-btn" onclick="pinPress('9')">9</button>
+    <button class="pin-btn zero" onclick="pinPress('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-error" id="pin-error"></div>
+  <div class="pin-setup-note" id="pin-setup-note"></div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app" id="app">
+  <div class="app-header">
+    <div class="header-top">
+      <div class="app-brand">
+        <span class="app-brand-icon">🏆</span>
+        <span class="app-brand-name">Game Face</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="sync-status"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Synced</span></div>
+        <button class="lock-btn" onclick="lockApp()">Lock</button>
+      </div>
+    </div>
+    <div class="app-tabs">
+      <button class="app-tab active" onclick="showAppTab('ivar',this)" id="tab-ivar">⛸ Ivar</button>
+      <button class="app-tab" onclick="showAppTab('emma',this)" id="tab-emma">⚾ Emma</button>
+    </div>
+  </div>
+
+  <!-- IVAR - HOCKEY -->
+  <div class="tab-content active" id="content-ivar">
+    <div style="height:1rem;"></div>
+
+    <details>
+      <summary>How the rewards work</summary>
+      <div class="how-box">
+        <div class="how-row"><span>Every save</span><span class="how-r">10 R</span></div>
+        <div class="how-row"><span>Team win</span><span class="how-r">+150 R</span></div>
+        <div class="how-row"><span>Shutout</span><span class="how-r">+100 R (stacks)</span></div>
+        <div class="how-row"><span>Play every game</span><span class="how-r">+250 R</span></div>
+        <div class="how-row"><span>Goals against</span><span class="how-r">Never counted</span></div>
+      </div>
+    </details>
+
+    <div class="section-label">Game</div>
+    <div class="game-tabs" id="ivar-game-tabs">
+      <div class="gtab active" onclick="ivarSetGame(1,this)">Game 1</div>
+      <div class="gtab" onclick="ivarSetGame(2,this)">Game 2</div>
+      <div class="gtab" onclick="ivarSetGame(3,this)">Game 3</div>
+      <div class="gtab" onclick="ivarSetGame(4,this)">Game 4</div>
+      <div class="gtab" onclick="ivarSetGame(5,this)">Game 5</div>
+    </div>
+
+    <div class="section-label">Saves this game</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:0.75rem;">
+      <div class="counter-wrap">
+        <button class="cnt-btn" onclick="ivarAdj('saves',-1)">−</button>
+        <input type="number" id="ivar-saves" min="0" value="0" oninput="ivarSavesInput()" style="width:72px;" />
+        <button class="cnt-btn" onclick="ivarAdj('saves',1)">+</button>
+      </div>
+      <span class="cnt-hint">10 R per save</span>
+    </div>
+
+    <div class="section-label">Shots faced (optional)</div>
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:0;">
+      <div class="counter-wrap">
+        <button class="cnt-btn" onclick="ivarAdj('shots',-1)">−</button>
+        <input type="number" id="ivar-shots" min="0" value="0" oninput="ivarShotsInput()" style="width:72px;" />
+        <button class="cnt-btn" onclick="ivarAdj('shots',1)">+</button>
+      </div>
+      <span class="cnt-hint">shots on goal</span>
+    </div>
+    <div class="save-pct" id="ivar-svpct"></div>
+
+    <div class="section-label">Bonuses</div>
+    <div class="toggle-row">
+      <div class="toggle-card" id="ivar-win-card" onclick="ivarToggle('win')">
+        <div class="toggle-lbl">Team win</div>
+        <div class="toggle-val" id="ivar-win-val">Tap to add +150 R</div>
+      </div>
+      <div class="toggle-card" id="ivar-shutout-card" onclick="ivarToggle('shutout')">
+        <div class="toggle-lbl">Shutout</div>
+        <div class="toggle-val" id="ivar-shutout-val">Tap to add +100 R</div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="breakdown" id="ivar-breakdown">
+      <div class="breakdown-row">
+        <span class="lbl" id="ivar-saves-lbl">0 saves × 10 R</span>
+        <span class="amt" id="ivar-saves-amt">0 R</span>
+      </div>
+      <div class="breakdown-row bonus" id="ivar-win-line" style="display:none;">
+        <span class="lbl">Win bonus</span><span class="amt">+150 R</span>
+      </div>
+      <div class="breakdown-row bonus" id="ivar-shutout-line" style="display:none;">
+        <span class="lbl">Shutout bonus</span><span class="amt">+100 R</span>
+      </div>
+      <div class="breakdown-row total">
+        <span class="lbl">Game total</span>
+        <span class="amt" id="ivar-game-total">0 R</span>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section-label">Tournament running total</div>
+    <div class="summary-grid">
+      <div class="summary-card"><div class="s-lbl">Total saves</div><div class="s-val" id="ivar-t-saves">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Wins</div><div class="s-val" id="ivar-t-wins">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Shutouts</div><div class="s-val" id="ivar-t-shutouts">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Robux earned</div><div class="s-val" id="ivar-t-total">0 R</div></div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section-label">Tournament completion</div>
+    <div class="completion-banner" id="ivar-completion-card" onclick="ivarToggle('completion')">
+      <div class="toggle-lbl">Played every game — no backup, no days off</div>
+      <div class="toggle-val" id="ivar-completion-val">Tap to unlock +250 R bonus</div>
+    </div>
+
+    <div class="breakdown" id="ivar-completion-breakdown" style="display:none;">
+      <div class="breakdown-row"><span class="lbl">Saves earnings</span><span class="amt" id="ivar-f-saves">0 R</span></div>
+      <div class="breakdown-row bonus" id="ivar-f-wins-row" style="display:none;"><span class="lbl">Win bonuses</span><span class="amt" id="ivar-f-wins">+0 R</span></div>
+      <div class="breakdown-row bonus" id="ivar-f-shutouts-row" style="display:none;"><span class="lbl">Shutout bonuses</span><span class="amt" id="ivar-f-shutouts">+0 R</span></div>
+      <div class="breakdown-row completion-row"><span class="lbl">Completion bonus</span><span class="amt">+250 R</span></div>
+      <div class="breakdown-row total"><span class="lbl">Grand total</span><span class="amt" id="ivar-grand-total">0 R</span></div>
+    </div>
+  </div>
+
+  <!-- EMMA - SOFTBALL -->
+  <div class="tab-content" id="content-emma">
+    <div style="height:1rem;"></div>
+
+    <details>
+      <summary>How the rewards work</summary>
+      <div class="how-box">
+        <div class="how-row"><span>Out</span><span class="how-r">25 R</span></div>
+        <div class="how-row"><span>Double play</span><span class="how-r">100 R</span></div>
+        <div class="how-row"><span>Hit off pitcher (single)</span><span class="how-r">20 R</span></div>
+        <div class="how-row"><span>Hit off coach (single)</span><span class="how-r">10 R</span></div>
+        <div class="how-row"><span>Double = 2× / Triple = 3×</span><span class="how-r">base value</span></div>
+        <div class="how-row"><span>Home run</span><span class="how-r">100 R</span></div>
+        <div class="how-row"><span>RBI</span><span class="how-r">20 R</span></div>
+        <div class="how-row"><span>Run scored</span><span class="how-r">10 R</span></div>
+        <div class="how-row"><span>Stolen base</span><span class="how-r">5 R</span></div>
+        <div class="how-row"><span>Strike 1 or 2 (pitching)</span><span class="how-r">10 R each</span></div>
+        <div class="how-row"><span>Strikeout (pitching)</span><span class="how-r">+100 R (120 total)</span></div>
+      </div>
+    </details>
+
+    <div class="section-label">Game</div>
+    <div class="game-nav">
+      <button class="nav-btn" onclick="emmaPrevGame()">←</button>
+      <span class="game-num-label" id="emma-game-label">Game 1</span>
+      <button class="nav-btn" onclick="emmaNextGame()">→</button>
+    </div>
+
+    <div class="section-label">Batting &amp; fielding</div>
+    <div class="reward-grid">
+      <div class="reward-card">
+        <div class="reward-name">Out</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('outs',-1)">−</button>
+          <span class="r-count" id="e-outs">0</span>
+          <button class="r-btn" onclick="emmaAdj('outs',1)">+</button>
+          <span class="r-value">25 R</span>
+        </div>
+      </div>
+      <div class="reward-card">
+        <div class="reward-name">Double play</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('dps',-1)">−</button>
+          <span class="r-count" id="e-dps">0</span>
+          <button class="r-btn" onclick="emmaAdj('dps',1)">+</button>
+          <span class="r-value">100 R</span>
+        </div>
+      </div>
+      <div class="reward-card">
+        <div class="reward-name">Run scored</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('runs',-1)">−</button>
+          <span class="r-count" id="e-runs">0</span>
+          <button class="r-btn" onclick="emmaAdj('runs',1)">+</button>
+          <span class="r-value">10 R</span>
+        </div>
+      </div>
+      <div class="reward-card">
+        <div class="reward-name">RBI</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('rbis',-1)">−</button>
+          <span class="r-count" id="e-rbis">0</span>
+          <button class="r-btn" onclick="emmaAdj('rbis',1)">+</button>
+          <span class="r-value">20 R</span>
+        </div>
+      </div>
+      <div class="reward-card">
+        <div class="reward-name">Stolen base</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('steals',-1)">−</button>
+          <span class="r-count" id="e-steals">0</span>
+          <button class="r-btn" onclick="emmaAdj('steals',1)">+</button>
+          <span class="r-value">5 R</span>
+        </div>
+      </div>
+      <div class="reward-card">
+        <div class="reward-name">Home run</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('hrs',-1)">−</button>
+          <span class="r-count" id="e-hrs">0</span>
+          <button class="r-btn" onclick="emmaAdj('hrs',1)">+</button>
+          <span class="r-value">100 R</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-label">Hits</div>
+    <div style="margin-bottom:1.5rem;">
+      <div class="hit-type-row">
+        <div class="hit-type-btn active" onclick="emmaSetHitType('single',this)">Single (1×)</div>
+        <div class="hit-type-btn" onclick="emmaSetHitType('double',this)">Double (2×)</div>
+        <div class="hit-type-btn" onclick="emmaSetHitType('triple',this)">Triple (3×)</div>
+      </div>
+      <div class="hit-source-row">
+        <div class="hit-source-btn active" onclick="emmaSetHitSource('pitcher',this)">Off pitcher</div>
+        <div class="hit-source-btn" onclick="emmaSetHitSource('coach',this)">Off coach</div>
+      </div>
+      <div class="hit-preview" id="emma-hit-preview">Single off pitcher = 20 R</div>
+      <button class="add-hit-btn" onclick="emmaAddHit()">+ Add hit</button>
+    </div>
+
+    <div class="section-label">Pitching</div>
+    <div class="reward-grid" style="margin-bottom:1.5rem;">
+      <div class="reward-card pitching">
+        <div class="reward-name">Strike (1st or 2nd)</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('strikes',-1)">−</button>
+          <span class="r-count" id="e-strikes">0</span>
+          <button class="r-btn" onclick="emmaAdj('strikes',1)">+</button>
+          <span class="r-value">10 R</span>
+        </div>
+      </div>
+      <div class="reward-card pitching">
+        <div class="reward-name">Strikeout</div>
+        <div class="reward-controls">
+          <button class="r-btn" onclick="emmaAdj('ks',-1)">−</button>
+          <span class="r-count" id="e-ks">0</span>
+          <button class="r-btn" onclick="emmaAdj('ks',1)">+</button>
+          <span class="r-value">+100 R</span>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section-label">This game</div>
+    <div class="breakdown">
+      <div class="breakdown-row" id="e-br-outs" style="display:none;"><span class="lbl" id="e-bl-outs"></span><span class="amt" id="e-ba-outs"></span></div>
+      <div class="breakdown-row" id="e-br-dps" style="display:none;"><span class="lbl" id="e-bl-dps"></span><span class="amt" id="e-ba-dps"></span></div>
+      <div class="breakdown-row" id="e-br-hits" style="display:none;"><span class="lbl" id="e-bl-hits"></span><span class="amt" id="e-ba-hits"></span></div>
+      <div class="breakdown-row" id="e-br-hrs" style="display:none;"><span class="lbl" id="e-bl-hrs"></span><span class="amt" id="e-ba-hrs"></span></div>
+      <div class="breakdown-row" id="e-br-rbis" style="display:none;"><span class="lbl" id="e-bl-rbis"></span><span class="amt" id="e-ba-rbis"></span></div>
+      <div class="breakdown-row" id="e-br-runs" style="display:none;"><span class="lbl" id="e-bl-runs"></span><span class="amt" id="e-ba-runs"></span></div>
+      <div class="breakdown-row" id="e-br-steals" style="display:none;"><span class="lbl" id="e-bl-steals"></span><span class="amt" id="e-ba-steals"></span></div>
+      <div class="breakdown-row" id="e-br-strikes" style="display:none;"><span class="lbl" id="e-bl-strikes"></span><span class="amt" id="e-ba-strikes"></span></div>
+      <div class="breakdown-row" id="e-br-ks" style="display:none;"><span class="lbl" id="e-bl-ks"></span><span class="amt" id="e-ba-ks"></span></div>
+      <div class="breakdown-row" id="e-br-empty"><span class="lbl" style="color:var(--text3);font-size:13px;">Nothing logged yet this game</span></div>
+      <div class="breakdown-row total"><span class="lbl">Game total</span><span class="amt" id="e-game-total">0 R</span></div>
+    </div>
+
+    <hr class="divider" />
+
+    <div class="section-label">Season totals</div>
+    <div class="summary-grid">
+      <div class="summary-card"><div class="s-lbl">Games</div><div class="s-val" id="e-st-games">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Outs</div><div class="s-val" id="e-st-outs">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Double plays</div><div class="s-val" id="e-st-dps">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Hits</div><div class="s-val" id="e-st-hits">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Home runs</div><div class="s-val" id="e-st-hrs">0</div></div>
+      <div class="summary-card"><div class="s-lbl">RBI</div><div class="s-val" id="e-st-rbis">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Runs scored</div><div class="s-val" id="e-st-runs">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Stolen bases</div><div class="s-val" id="e-st-steals">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Strikes</div><div class="s-val" id="e-st-strikes">0</div></div>
+      <div class="summary-card"><div class="s-lbl">Strikeouts</div><div class="s-val" id="e-st-ks">0</div></div>
+    </div>
+
+    <div class="grand-total-card">
+      <span class="gt-lbl">Total Robux earned</span>
+      <span class="gt-val" id="e-grand-total">0 R</span>
+    </div>
+
+    <button class="payout-btn" onclick="emmaOpenPayout()">Cash out Robux</button>
+
+    <hr class="divider" />
+    <div class="section-label" style="margin-bottom:12px;">Payout history</div>
+    <div id="emma-audit-log"><div class="audit-empty">No payouts yet</div></div>
+  </div>
+</div>
+
+<!-- PAYOUT MODAL -->
+<div class="modal-overlay hidden" id="emma-modal">
+  <div class="modal">
+    <h3>Cash out</h3>
+    <p>This will record the payout and reset all totals to zero.</p>
+    <div class="modal-amount" id="emma-modal-amount">0 R</div>
+    <div class="modal-btns">
+      <button class="modal-cancel" onclick="emmaCloseModal()">Cancel</button>
+      <button class="modal-confirm" onclick="emmaConfirmPayout()">Confirm payout</button>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+import { getFirestore, doc, onSnapshot, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+// ============================================================
+// FIREBASE CONFIG -- replace with your config from Firebase Console
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyAR6dEa7uQnv5qTO6IAX_NHCcIgIw9V_oo",
+  authDomain: "gameface-50d72.firebaseapp.com",
+  projectId: "gameface-50d72",
+  storageBucket: "gameface-50d72.firebasestorage.app",
+  messagingSenderId: "276683646760",
+  appId: "1:276683646760:web:191bbc0ff963e59fd4521d"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// ---- SYNC HELPERS ----
+function setSyncing() {
+  document.getElementById('sync-dot').className = 'sync-dot syncing';
+  document.getElementById('sync-label').textContent = 'Saving...';
+}
+function setSynced() {
+  document.getElementById('sync-dot').className = 'sync-dot';
+  document.getElementById('sync-label').textContent = 'Synced';
+}
+function setSyncError() {
+  document.getElementById('sync-dot').className = 'sync-dot error';
+  document.getElementById('sync-label').textContent = 'Offline';
+}
+
+// ---- PIN LOGIC ----
+const PIN_DOC = doc(db, 'gameface', 'config');
+const IVAR_DOC = doc(db, 'gameface', 'ivar');
+const EMMA_DOC = doc(db, 'gameface', 'emma');
+
+let pinBuffer = '';
+let storedPin = null;
+let pinMode = 'enter'; // 'setup' | 'confirm' | 'enter'
+let pinConfirmBuffer = '';
+
+async function initApp() {
+  document.getElementById('loading-screen').classList.add('hidden');
+  const snap = await getDoc(PIN_DOC).catch(() => null);
+  if (snap && snap.exists() && snap.data().pin) {
+    storedPin = snap.data().pin;
+    pinMode = 'enter';
+    document.getElementById('pin-label').textContent = 'Enter PIN';
+    document.getElementById('pin-setup-note').textContent = '';
+  } else {
+    pinMode = 'setup';
+    document.getElementById('pin-label').textContent = 'Choose a 4-digit PIN';
+    document.getElementById('pin-setup-note').textContent = 'This PIN will be required to log into Game Face. Share it with your family.';
+  }
+  document.getElementById('pin-screen').classList.remove('hidden');
+}
+
+window.pinPress = function(d) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += d;
+  updatePinDots(pinBuffer.length);
+  if (pinBuffer.length === 4) {
+    setTimeout(() => handlePin(), 150);
+  }
+};
+
+window.pinDel = function() {
+  if (pinBuffer.length > 0) {
+    pinBuffer = pinBuffer.slice(0, -1);
+    updatePinDots(pinBuffer.length);
+  }
+};
+
+function updatePinDots(n) {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('pd'+i).className = 'pin-dot' + (i < n ? ' filled' : '');
+  }
+}
+
+async function handlePin() {
+  if (pinMode === 'setup') {
+    pinConfirmBuffer = pinBuffer;
+    pinBuffer = '';
+    pinMode = 'confirm';
+    updatePinDots(0);
+    document.getElementById('pin-label').textContent = 'Confirm your PIN';
+    document.getElementById('pin-setup-note').textContent = '';
+  } else if (pinMode === 'confirm') {
+    if (pinBuffer === pinConfirmBuffer) {
+      storedPin = pinBuffer;
+      await setDoc(PIN_DOC, { pin: storedPin }, { merge: true });
+      pinBuffer = '';
+      unlockApp();
+    } else {
+      document.getElementById('pin-error').textContent = "PINs don't match — try again";
+      pinBuffer = '';
+      pinConfirmBuffer = '';
+      pinMode = 'setup';
+      updatePinDots(0);
+      document.getElementById('pin-label').textContent = 'Choose a 4-digit PIN';
+    }
+  } else {
+    if (pinBuffer === storedPin) {
+      pinBuffer = '';
+      unlockApp();
+    } else {
+      document.getElementById('pin-error').textContent = 'Incorrect PIN';
+      pinBuffer = '';
+      updatePinDots(0);
+    }
+  }
+}
+
+function unlockApp() {
+  document.getElementById('pin-screen').classList.add('hidden');
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('app').classList.add('visible');
+  startListeners();
+}
+
+window.lockApp = function() {
+  document.getElementById('app').classList.remove('visible');
+  pinBuffer = '';
+  updatePinDots(0);
+  document.getElementById('pin-label').textContent = 'Enter PIN';
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-screen').classList.remove('hidden');
+};
+
+// ---- APP TAB SWITCHING ----
+window.showAppTab = function(tab, el) {
+  document.querySelectorAll('.app-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('content-' + tab).classList.add('active');
+};
+
+// ============================================================
+// IVAR - HOCKEY
+// ============================================================
+let ivarData = {
+  games: Array.from({length:5}, () => ({saves:0, shots:0, win:false, shutout:false})),
+  completion: false
+};
+let ivarGame = 1;
+let ivarSaving = false;
+
+function ivarG() { return ivarData.games[ivarGame-1]; }
+
+async function ivarSave() {
+  if (ivarSaving) return;
+  ivarSaving = true;
+  setSyncing();
+  try {
+    await setDoc(IVAR_DOC, ivarData);
+    setSynced();
+  } catch(e) { setSyncError(); }
+  ivarSaving = false;
+}
+
+window.ivarSetGame = function(n, el) {
+  ivarGame = n;
+  document.querySelectorAll('#ivar-game-tabs .gtab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('ivar-saves').value = ivarG().saves;
+  document.getElementById('ivar-shots').value = ivarG().shots;
+  ivarRender();
+};
+
+window.ivarAdj = function(field, d) {
+  if (field === 'saves') {
+    ivarG().saves = Math.max(0, ivarG().saves + d);
+    document.getElementById('ivar-saves').value = ivarG().saves;
+    ivarAutoShutout();
+  } else if (field === 'shots') {
+    ivarG().shots = Math.max(0, ivarG().shots + d);
+    document.getElementById('ivar-shots').value = ivarG().shots;
+  }
+  ivarRender(); ivarSave();
+};
+
+window.ivarSavesInput = function() {
+  ivarG().saves = Math.max(0, parseInt(document.getElementById('ivar-saves').value)||0);
+  ivarAutoShutout(); ivarRender(); ivarSave();
+};
+
+window.ivarShotsInput = function() {
+  ivarG().shots = Math.max(0, parseInt(document.getElementById('ivar-shots').value)||0);
+  ivarRender(); ivarSave();
+};
+
+function ivarAutoShutout() {
+  var gm = ivarG();
+  if (gm.saves > 0 && gm.shots > 0 && gm.saves === gm.shots) gm.shutout = true;
+}
+
+window.ivarToggle = function(field) {
+  if (field === 'completion') {
+    ivarData.completion = !ivarData.completion;
+  } else {
+    ivarG()[field] = !ivarG()[field];
+  }
+  ivarRender(); ivarSave();
+};
+
+function ivarGameTotal(gm) {
+  var t = gm.saves * 10;
+  if (gm.win) t += 150;
+  if (gm.shutout) t += 100;
+  return t;
+}
+
+function ivarRender() {
+  var gm = ivarG();
+  document.getElementById('ivar-saves-lbl').textContent = gm.saves + ' saves × 10 R';
+  document.getElementById('ivar-saves-amt').textContent = (gm.saves*10) + ' R';
+  document.getElementById('ivar-game-total').textContent = ivarGameTotal(gm) + ' R';
+  document.getElementById('ivar-win-line').style.display = gm.win ? '' : 'none';
+  document.getElementById('ivar-shutout-line').style.display = gm.shutout ? '' : 'none';
+  document.getElementById('ivar-win-card').className = 'toggle-card' + (gm.win ? ' active-win' : '');
+  document.getElementById('ivar-shutout-card').className = 'toggle-card' + (gm.shutout ? ' active-shutout' : '');
+  document.getElementById('ivar-win-val').textContent = gm.win ? 'Win! +150 R earned' : 'Tap to add +150 R';
+  document.getElementById('ivar-shutout-val').textContent = gm.shutout ? 'Shutout! +100 R earned' : 'Tap to add +100 R';
+  var pct = document.getElementById('ivar-svpct');
+  pct.textContent = (gm.shots > 0 && gm.saves <= gm.shots) ? 'Save %: ' + (gm.saves/gm.shots*100).toFixed(1) + '%' : '';
+
+  var tSaves=0, tWins=0, tShutouts=0, tSavesR=0, tWinsR=0, tShoutR=0, tTotal=0;
+  ivarData.games.forEach(function(gx) {
+    tSaves += gx.saves; tSavesR += gx.saves*10;
+    if (gx.win) { tWins++; tWinsR+=150; }
+    if (gx.shutout) { tShutouts++; tShoutR+=100; }
+    tTotal += ivarGameTotal(gx);
+  });
+  document.getElementById('ivar-t-saves').textContent = tSaves;
+  document.getElementById('ivar-t-wins').textContent = tWins;
+  document.getElementById('ivar-t-shutouts').textContent = tShutouts;
+  document.getElementById('ivar-t-total').textContent = tTotal + ' R';
+
+  var comp = ivarData.completion;
+  document.getElementById('ivar-completion-card').className = 'completion-banner' + (comp ? ' active' : '');
+  document.getElementById('ivar-completion-val').textContent = comp ? 'Bonus unlocked! +250 R earned' : 'Tap to unlock +250 R bonus';
+  document.getElementById('ivar-completion-breakdown').style.display = comp ? '' : 'none';
+  if (comp) {
+    document.getElementById('ivar-f-saves').textContent = tSavesR + ' R';
+    document.getElementById('ivar-f-wins-row').style.display = tWins > 0 ? '' : 'none';
+    document.getElementById('ivar-f-shutouts-row').style.display = tShutouts > 0 ? '' : 'none';
+    document.getElementById('ivar-f-wins').textContent = '+' + tWinsR + ' R';
+    document.getElementById('ivar-f-shutouts').textContent = '+' + tShoutR + ' R';
+    document.getElementById('ivar-grand-total').textContent = (tTotal+250) + ' R';
+  }
+}
+
+// ============================================================
+// EMMA - SOFTBALL
+// ============================================================
+let emmaGames = [];
+let emmaCurrentGame = 1;
+let emmaHitType = 'single';
+let emmaHitSource = 'pitcher';
+let emmaAuditLog = [];
+let emmaPayoutCount = 0;
+let emmaSaving = false;
+
+const BASE_HIT = {pitcher:20, coach:10};
+const MULT = {single:1, double:2, triple:3};
+
+function emmaGetGame(n) {
+  while (emmaGames.length < n) emmaGames.push({outs:0,dps:0,hits:[],hrs:0,rbis:0,runs:0,steals:0,strikes:0,ks:0});
+  return emmaGames[n-1];
+}
+function emmaG() { return emmaGetGame(emmaCurrentGame); }
+
+async function emmaSaveToDb() {
+  if (emmaSaving) return;
+  emmaSaving = true;
+  setSyncing();
+  try {
+    await setDoc(EMMA_DOC, { games: emmaGames, auditLog: emmaAuditLog, payoutCount: emmaPayoutCount });
+    setSynced();
+  } catch(e) { setSyncError(); }
+  emmaSaving = false;
+}
+
+window.emmaPrevGame = function() { if (emmaCurrentGame>1) { emmaCurrentGame--; emmaRender(); } };
+window.emmaNextGame = function() { emmaCurrentGame++; emmaGetGame(emmaCurrentGame); emmaRender(); };
+
+window.emmaAdj = function(field, d) {
+  emmaG()[field] = Math.max(0, emmaG()[field]+d);
+  emmaRender(); emmaSaveToDb();
+};
+
+window.emmaSetHitType = function(type, el) {
+  emmaHitType = type;
+  document.querySelectorAll('.hit-type-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  emmaUpdateHitPreview();
+};
+
+window.emmaSetHitSource = function(src, el) {
+  emmaHitSource = src;
+  document.querySelectorAll('.hit-source-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  emmaUpdateHitPreview();
+};
+
+function emmaHitValue() { return BASE_HIT[emmaHitSource] * MULT[emmaHitType]; }
+
+function emmaUpdateHitPreview() {
+  var label = emmaHitType.charAt(0).toUpperCase()+emmaHitType.slice(1);
+  document.getElementById('emma-hit-preview').textContent = label+' off '+emmaHitSource+' = '+emmaHitValue()+' R';
+}
+
+window.emmaAddHit = function() {
+  emmaG().hits.push({type:emmaHitType, source:emmaHitSource, value:emmaHitValue()});
+  emmaRender(); emmaSaveToDb();
+};
+
+function emmaGameTotal(gm) {
+  var t = gm.outs*25 + gm.dps*100 + gm.hits.reduce((s,h)=>s+h.value,0) + gm.hrs*100 + gm.rbis*20 + gm.runs*10 + gm.steals*5 + gm.strikes*10 + gm.ks*100;
+  return t;
+}
+
+function emmaTotalRobux() { return emmaGames.reduce((s,gm)=>s+emmaGameTotal(gm),0); }
+function emmaTotalStat(f) { return emmaGames.reduce((s,gm)=>s+(f==='hits'?gm.hits.length:gm[f]),0); }
+
+window.emmaOpenPayout = function() {
+  document.getElementById('emma-modal-amount').textContent = emmaTotalRobux() + ' R';
+  document.getElementById('emma-modal').classList.remove('hidden');
+};
+window.emmaCloseModal = function() { document.getElementById('emma-modal').classList.add('hidden'); };
+
+window.emmaConfirmPayout = function() {
+  emmaPayoutCount++;
+  var total = emmaTotalRobux();
+  var now = new Date();
+  var dateStr = now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  var details = [];
+  var tO=emmaTotalStat('outs'),tD=emmaTotalStat('dps'),tH=emmaTotalStat('hits');
+  var tHr=emmaTotalStat('hrs'),tRbi=emmaTotalStat('rbis'),tR=emmaTotalStat('runs');
+  var tSt=emmaTotalStat('steals'),tStr=emmaTotalStat('strikes'),tK=emmaTotalStat('ks');
+  var hVal=emmaGames.reduce((s,gm)=>s+gm.hits.reduce((a,h)=>a+h.value,0),0);
+  if(tO) details.push(tO+' outs ('+(tO*25)+' R)');
+  if(tD) details.push(tD+' double plays ('+(tD*100)+' R)');
+  if(tH) details.push(tH+' hits ('+hVal+' R)');
+  if(tHr) details.push(tHr+' home runs ('+(tHr*100)+' R)');
+  if(tRbi) details.push(tRbi+' RBI ('+(tRbi*20)+' R)');
+  if(tR) details.push(tR+' runs ('+(tR*10)+' R)');
+  if(tSt) details.push(tSt+' stolen bases ('+(tSt*5)+' R)');
+  if(tStr) details.push(tStr+' strikes ('+(tStr*10)+' R)');
+  if(tK) details.push(tK+' strikeouts ('+(tK*100)+' R)');
+  emmaAuditLog.unshift({num:emmaPayoutCount,date:dateStr,total:total,games:emmaGames.length,details:details});
+  emmaGames = [];
+  emmaCurrentGame = 1;
+  emmaGetGame(1);
+  emmaCloseModal();
+  emmaRender();
+  emmaSaveToDb();
+};
+
+function pl(n,w) { return n+' '+w+(n!==1?'s':''); }
+
+function emmaRender() {
+  var gm = emmaG();
+  document.getElementById('emma-game-label').textContent = 'Game '+emmaCurrentGame;
+  document.getElementById('e-outs').textContent = gm.outs;
+  document.getElementById('e-dps').textContent = gm.dps;
+  document.getElementById('e-hrs').textContent = gm.hrs;
+  document.getElementById('e-rbis').textContent = gm.rbis;
+  document.getElementById('e-runs').textContent = gm.runs;
+  document.getElementById('e-steals').textContent = gm.steals;
+  document.getElementById('e-strikes').textContent = gm.strikes;
+  document.getElementById('e-ks').textContent = gm.ks;
+  var hVal = gm.hits.reduce((s,h)=>s+h.value,0);
+  var rows = [
+    {id:'outs',show:gm.outs>0,label:pl(gm.outs,'out'),val:gm.outs*25},
+    {id:'dps',show:gm.dps>0,label:pl(gm.dps,'double play'),val:gm.dps*100},
+    {id:'hits',show:gm.hits.length>0,label:pl(gm.hits.length,'hit'),val:hVal},
+    {id:'hrs',show:gm.hrs>0,label:pl(gm.hrs,'home run'),val:gm.hrs*100},
+    {id:'rbis',show:gm.rbis>0,label:pl(gm.rbis,'RBI'),val:gm.rbis*20},
+    {id:'runs',show:gm.runs>0,label:pl(gm.runs,'run')+' scored',val:gm.runs*10},
+    {id:'steals',show:gm.steals>0,label:pl(gm.steals,'stolen base'),val:gm.steals*5},
+    {id:'strikes',show:gm.strikes>0,label:pl(gm.strikes,'strike')+' (pitching)',val:gm.strikes*10},
+    {id:'ks',show:gm.ks>0,label:pl(gm.ks,'strikeout'),val:gm.ks*100},
+  ];
+  var any=false;
+  rows.forEach(r=>{
+    document.getElementById('e-br-'+r.id).style.display=r.show?'':'none';
+    if(r.show){document.getElementById('e-bl-'+r.id).textContent=r.label;document.getElementById('e-ba-'+r.id).textContent=r.val+' R';any=true;}
+  });
+  document.getElementById('e-br-empty').style.display=any?'none':'';
+  document.getElementById('e-game-total').textContent=emmaGameTotal(gm)+' R';
+  document.getElementById('e-st-games').textContent=emmaGames.length;
+  ['outs','dps','hits','hrs','rbis','runs','steals','strikes','ks'].forEach(f=>{
+    document.getElementById('e-st-'+f).textContent=emmaTotalStat(f);
+  });
+  document.getElementById('e-grand-total').textContent=emmaTotalRobux()+' R';
+  var logEl=document.getElementById('emma-audit-log');
+  if(emmaAuditLog.length===0){logEl.innerHTML='<div class="audit-empty">No payouts yet</div>';}
+  else{logEl.innerHTML=emmaAuditLog.map(e=>`<div class="audit-entry"><div class="audit-header"><span class="audit-title">Payout #${e.num} — ${e.games} game${e.games!==1?'s':''}</span><span class="audit-date">${e.date}</span></div><div class="audit-amount">${e.total} R</div><div class="audit-detail">${e.details.join(' · ')||'No stats recorded'}</div></div>`).join('');}
+  emmaUpdateHitPreview();
+}
+
+// ---- FIRESTORE LISTENERS ----
+function startListeners() {
+  onSnapshot(IVAR_DOC, snap => {
+    if (snap.exists()) {
+      var d = snap.data();
+      if (d.games) ivarData.games = d.games;
+      if (typeof d.completion === 'boolean') ivarData.completion = d.completion;
+      document.getElementById('ivar-saves').value = ivarG().saves;
+      document.getElementById('ivar-shots').value = ivarG().shots;
+      ivarRender();
+    }
+  }, () => setSyncError());
+
+  onSnapshot(EMMA_DOC, snap => {
+    if (snap.exists()) {
+      var d = snap.data();
+      if (d.games) { emmaGames = d.games; emmaGetGame(emmaCurrentGame); }
+      if (d.auditLog) emmaAuditLog = d.auditLog;
+      if (d.payoutCount) emmaPayoutCount = d.payoutCount;
+      emmaRender();
+    }
+  }, () => setSyncError());
+}
+
+// ---- BOOT ----
+ivarRender();
+emmaGetGame(1);
+emmaRender();
+initApp();
+</script>
+</body>
+</html>
