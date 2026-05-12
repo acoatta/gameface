@@ -372,6 +372,7 @@ details[open] summary { color: var(--text); font-weight: 500; margin-bottom: 8px
         <div class="how-row"><span>Stolen base</span><span class="how-r">5 R</span></div>
         <div class="how-row"><span>Strike 1 or 2 (pitching)</span><span class="how-r">10 R each</span></div>
         <div class="how-row"><span>Strikeout (pitching)</span><span class="how-r">+100 R (120 total)</span></div>
+        <div class="how-row"><span>Dragon Race win</span><span class="how-r">+150 R</span></div>
       </div>
     </details>
 
@@ -477,10 +478,19 @@ details[open] summary { color: var(--text); font-weight: 500; margin-bottom: 8px
       </div>
     </div>
 
+    <div class="section-label">Bonus</div>
+    <div class="toggle-row">
+      <div class="toggle-card" id="emma-dragon-card" onclick="emmaToggleDragon()">
+        <div class="toggle-lbl">Dragon Race win</div>
+        <div class="toggle-val" id="emma-dragon-val">Tap to add +150 R</div>
+      </div>
+    </div>
+
     <hr class="divider" />
 
     <div class="section-label">This game</div>
     <div class="breakdown">
+      <div class="breakdown-row bonus" id="e-br-dragon" style="display:none;"><span class="lbl">Dragon Race win</span><span class="amt">+150 R</span></div>
       <div class="breakdown-row" id="e-br-outs" style="display:none;"><span class="lbl" id="e-bl-outs"></span><span class="amt" id="e-ba-outs"></span></div>
       <div class="breakdown-row" id="e-br-dps" style="display:none;"><span class="lbl" id="e-bl-dps"></span><span class="amt" id="e-ba-dps"></span></div>
       <div class="breakdown-row" id="e-br-hits" style="display:none;"><span class="lbl" id="e-bl-hits"></span><span class="amt" id="e-ba-hits"></span></div>
@@ -552,8 +562,8 @@ const firebaseConfig = {
   messagingSenderId: "276683646760",
   appId: "1:276683646760:web:191bbc0ff963e59fd4521d"
 };
+// ============================================================
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
@@ -807,7 +817,7 @@ const BASE_HIT = {pitcher:20, coach:10};
 const MULT = {single:1, double:2, triple:3};
 
 function emmaGetGame(n) {
-  while (emmaGames.length < n) emmaGames.push({outs:0,dps:0,hits:[],hrs:0,rbis:0,runs:0,steals:0,strikes:0,ks:0});
+  while (emmaGames.length < n) emmaGames.push({outs:0,dps:0,hits:[],hrs:0,rbis:0,runs:0,steals:0,strikes:0,ks:0,dragon:false});
   return emmaGames[n-1];
 }
 function emmaG() { return emmaGetGame(emmaCurrentGame); }
@@ -859,11 +869,17 @@ window.emmaAddHit = function() {
 
 function emmaGameTotal(gm) {
   var t = gm.outs*25 + gm.dps*100 + gm.hits.reduce((s,h)=>s+h.value,0) + gm.hrs*100 + gm.rbis*20 + gm.runs*10 + gm.steals*5 + gm.strikes*10 + gm.ks*100;
+  if (gm.dragon) t += 150;
   return t;
 }
 
 function emmaTotalRobux() { return emmaGames.reduce((s,gm)=>s+emmaGameTotal(gm),0); }
 function emmaTotalStat(f) { return emmaGames.reduce((s,gm)=>s+(f==='hits'?gm.hits.length:gm[f]),0); }
+
+window.emmaToggleDragon = function() {
+  emmaG().dragon = !emmaG().dragon;
+  emmaRender(); emmaSaveToDb();
+};
 
 window.emmaOpenPayout = function() {
   document.getElementById('emma-modal-amount').textContent = emmaTotalRobux() + ' R';
@@ -890,6 +906,8 @@ window.emmaConfirmPayout = function() {
   if(tSt) details.push(tSt+' stolen bases ('+(tSt*5)+' R)');
   if(tStr) details.push(tStr+' strikes ('+(tStr*10)+' R)');
   if(tK) details.push(tK+' strikeouts ('+(tK*100)+' R)');
+  var tDragon = emmaGames.reduce((s,gm)=>s+(gm.dragon?1:0),0);
+  if(tDragon) details.push(tDragon+' Dragon Race win'+(tDragon!==1?'s':'')+' ('+(tDragon*150)+' R)');
   emmaAuditLog.unshift({num:emmaPayoutCount,date:dateStr,total:total,games:emmaGames.length,details:details});
   emmaGames = [];
   emmaCurrentGame = 1;
@@ -929,7 +947,11 @@ function emmaRender() {
     document.getElementById('e-br-'+r.id).style.display=r.show?'':'none';
     if(r.show){document.getElementById('e-bl-'+r.id).textContent=r.label;document.getElementById('e-ba-'+r.id).textContent=r.val+' R';any=true;}
   });
-  document.getElementById('e-br-empty').style.display=any?'none':'';
+  var drg = gm.dragon;
+  document.getElementById('e-br-dragon').style.display = drg ? '' : 'none';
+  document.getElementById('emma-dragon-card').className = 'toggle-card' + (drg ? ' active-win' : '');
+  document.getElementById('emma-dragon-val').textContent = drg ? 'Win! +150 R earned' : 'Tap to add +150 R';
+  document.getElementById('e-br-empty').style.display=any&&!drg?'none':(any||drg)?'none':'';
   document.getElementById('e-game-total').textContent=emmaGameTotal(gm)+' R';
   document.getElementById('e-st-games').textContent=emmaGames.length;
   ['outs','dps','hits','hrs','rbis','runs','steals','strikes','ks'].forEach(f=>{
