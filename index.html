@@ -129,6 +129,11 @@ input[type=number] { width: 72px; font-size: 22px; font-weight: 500; text-align:
 .game-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.5rem; }
 .gtab { padding: 6px 13px; border: 0.5px solid var(--border2); border-radius: 8px; font-size: 13px; cursor: pointer; background: var(--surface); color: var(--text2); }
 .gtab.active { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); font-weight: 500; }
+.tourn-switcher { display: flex; gap: 8px; margin-bottom: 1.25rem; }
+.tourn-btn { flex: 1; padding: 9px 8px; border: 0.5px solid var(--border2); border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; background: var(--surface); color: var(--text2); text-align: center; transition: all 0.15s; }
+.tourn-btn.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+.tourn-panel { display: none; }
+.tourn-panel.active { display: block; }
 
 /* REWARD GRID (baseball) */
 .reward-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1.5rem; }
@@ -266,91 +271,171 @@ details[open] summary { color: var(--text); font-weight: 500; margin-bottom: 8px
       </div>
     </details>
 
-    <div class="section-label">Game</div>
-    <div class="game-tabs" id="ivar-game-tabs">
-      <div class="gtab active" onclick="ivarSetGame(1,this)">Game 1</div>
-      <div class="gtab" onclick="ivarSetGame(2,this)">Game 2</div>
-      <div class="gtab" onclick="ivarSetGame(3,this)">Game 3</div>
-      <div class="gtab" onclick="ivarSetGame(4,this)">Game 4</div>
-      <div class="gtab" onclick="ivarSetGame(5,this)">Game 5</div>
+    <!-- TOURNAMENT SWITCHER -->
+    <div class="tourn-switcher">
+      <button class="tourn-btn active" onclick="ivarSwitchTourn('t1',this)" id="ivar-tourn-btn-t1">Kings Cup</button>
+      <button class="tourn-btn" onclick="ivarSwitchTourn('mayhem',this)" id="ivar-tourn-btn-mayhem">🏒 BC Mayhem</button>
     </div>
 
-    <div class="section-label">Saves this game</div>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:0.75rem;">
-      <div class="counter-wrap">
-        <button class="cnt-btn" onclick="ivarAdj('saves',-1)">−</button>
-        <input type="number" id="ivar-saves" min="0" value="0" oninput="ivarSavesInput()" style="width:72px;" />
-        <button class="cnt-btn" onclick="ivarAdj('saves',1)">+</button>
+    <!-- TOURNAMENT 1 PANEL -->
+    <div class="tourn-panel active" id="ivar-panel-t1">
+      <div class="section-label">Game</div>
+      <div class="game-tabs" id="ivar-game-tabs">
+        <div class="gtab active" onclick="ivarSetGame(1,this,'t1')">Game 1</div>
+        <div class="gtab" onclick="ivarSetGame(2,this,'t1')">Game 2</div>
+        <div class="gtab" onclick="ivarSetGame(3,this,'t1')">Game 3</div>
+        <div class="gtab" onclick="ivarSetGame(4,this,'t1')">Game 4</div>
+        <div class="gtab" onclick="ivarSetGame(5,this,'t1')">Game 5</div>
       </div>
-      <span class="cnt-hint">10 R per save</span>
+      <div class="section-label">Saves this game</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:0.75rem;">
+        <div class="counter-wrap">
+          <button class="cnt-btn" onclick="ivarAdj('saves',-1)">−</button>
+          <input type="number" id="ivar-saves" min="0" value="0" oninput="ivarSavesInput()" style="width:72px;" />
+          <button class="cnt-btn" onclick="ivarAdj('saves',1)">+</button>
+        </div>
+        <span class="cnt-hint">10 R per save</span>
+      </div>
+      <div class="section-label">Shots faced (optional)</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:0;">
+        <div class="counter-wrap">
+          <button class="cnt-btn" onclick="ivarAdj('shots',-1)">−</button>
+          <input type="number" id="ivar-shots" min="0" value="0" oninput="ivarShotsInput()" style="width:72px;" />
+          <button class="cnt-btn" onclick="ivarAdj('shots',1)">+</button>
+        </div>
+        <span class="cnt-hint">shots on goal</span>
+      </div>
+      <div class="save-pct" id="ivar-svpct"></div>
+      <div class="section-label">Bonuses</div>
+      <div class="toggle-row">
+        <div class="toggle-card" id="ivar-win-card" onclick="ivarToggle('win')">
+          <div class="toggle-lbl">Team win</div>
+          <div class="toggle-val" id="ivar-win-val">Tap to add +150 R</div>
+        </div>
+        <div class="toggle-card" id="ivar-shutout-card" onclick="ivarToggle('shutout')">
+          <div class="toggle-lbl">Shutout</div>
+          <div class="toggle-val" id="ivar-shutout-val">Tap to add +100 R</div>
+        </div>
+      </div>
+      <hr class="divider" />
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <span class="lbl" id="ivar-saves-lbl">0 saves × 10 R</span>
+          <span class="amt" id="ivar-saves-amt">0 R</span>
+        </div>
+        <div class="breakdown-row bonus" id="ivar-win-line" style="display:none;">
+          <span class="lbl">Win bonus</span><span class="amt">+150 R</span>
+        </div>
+        <div class="breakdown-row bonus" id="ivar-shutout-line" style="display:none;">
+          <span class="lbl">Shutout bonus</span><span class="amt">+100 R</span>
+        </div>
+        <div class="breakdown-row total">
+          <span class="lbl">Game total</span>
+          <span class="amt" id="ivar-game-total">0 R</span>
+        </div>
+      </div>
+      <hr class="divider" />
+      <div class="section-label">Tournament running total</div>
+      <div class="summary-grid">
+        <div class="summary-card"><div class="s-lbl">Total saves</div><div class="s-val" id="ivar-t-saves">0</div></div>
+        <div class="summary-card"><div class="s-lbl">Wins</div><div class="s-val" id="ivar-t-wins">0</div></div>
+        <div class="summary-card"><div class="s-lbl">Shutouts</div><div class="s-val" id="ivar-t-shutouts">0</div></div>
+        <div class="summary-card"><div class="s-lbl">Robux earned</div><div class="s-val" id="ivar-t-total">0 R</div></div>
+      </div>
+      <hr class="divider" />
+      <div class="section-label">Tournament completion</div>
+      <div class="completion-banner" id="ivar-completion-card" onclick="ivarToggle('completion')">
+        <div class="toggle-lbl">Played every game — no backup, no days off</div>
+        <div class="toggle-val" id="ivar-completion-val">Tap to unlock +250 R bonus</div>
+      </div>
+      <div class="breakdown" id="ivar-completion-breakdown" style="display:none;">
+        <div class="breakdown-row"><span class="lbl">Saves earnings</span><span class="amt" id="ivar-f-saves">0 R</span></div>
+        <div class="breakdown-row bonus" id="ivar-f-wins-row" style="display:none;"><span class="lbl">Win bonuses</span><span class="amt" id="ivar-f-wins">+0 R</span></div>
+        <div class="breakdown-row bonus" id="ivar-f-shutouts-row" style="display:none;"><span class="lbl">Shutout bonuses</span><span class="amt" id="ivar-f-shutouts">+0 R</span></div>
+        <div class="breakdown-row completion-row"><span class="lbl">Completion bonus</span><span class="amt">+250 R</span></div>
+        <div class="breakdown-row total"><span class="lbl">Grand total</span><span class="amt" id="ivar-grand-total">0 R</span></div>
+      </div>
     </div>
 
-    <div class="section-label">Shots faced (optional)</div>
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:0;">
-      <div class="counter-wrap">
-        <button class="cnt-btn" onclick="ivarAdj('shots',-1)">−</button>
-        <input type="number" id="ivar-shots" min="0" value="0" oninput="ivarShotsInput()" style="width:72px;" />
-        <button class="cnt-btn" onclick="ivarAdj('shots',1)">+</button>
+    <!-- BC MAYHEM PANEL -->
+    <div class="tourn-panel" id="ivar-panel-mayhem">
+      <div class="section-label">Game</div>
+      <div class="game-tabs" id="ivar-mayhem-tabs">
+        <div class="gtab active" onclick="ivarSetGame(1,this,'mayhem')">PoCo Bears</div>
+        <div class="gtab" onclick="ivarSetGame(2,this,'mayhem')">Langley #1</div>
+        <div class="gtab" onclick="ivarSetGame(3,this,'mayhem')">Langley #2</div>
+        <div class="gtab" onclick="ivarSetGame(4,this,'mayhem')">Jr Steelers</div>
+        <div class="gtab" onclick="ivarSetGame(5,this,'mayhem')">Semi-Final</div>
+        <div class="gtab" onclick="ivarSetGame(6,this,'mayhem')">Gold/Bronze</div>
       </div>
-      <span class="cnt-hint">shots on goal</span>
-    </div>
-    <div class="save-pct" id="ivar-svpct"></div>
-
-    <div class="section-label">Bonuses</div>
-    <div class="toggle-row">
-      <div class="toggle-card" id="ivar-win-card" onclick="ivarToggle('win')">
-        <div class="toggle-lbl">Team win</div>
-        <div class="toggle-val" id="ivar-win-val">Tap to add +150 R</div>
+      <div class="section-label">Saves this game</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:0.75rem;">
+        <div class="counter-wrap">
+          <button class="cnt-btn" onclick="ivarAdj('saves',-1)">−</button>
+          <input type="number" id="ivar-m-saves" min="0" value="0" oninput="ivarMSavesInput()" style="width:72px;" />
+          <button class="cnt-btn" onclick="ivarAdj('saves',1)">+</button>
+        </div>
+        <span class="cnt-hint">10 R per save</span>
       </div>
-      <div class="toggle-card" id="ivar-shutout-card" onclick="ivarToggle('shutout')">
-        <div class="toggle-lbl">Shutout</div>
-        <div class="toggle-val" id="ivar-shutout-val">Tap to add +100 R</div>
+      <div class="section-label">Shots faced (optional)</div>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:0;">
+        <div class="counter-wrap">
+          <button class="cnt-btn" onclick="ivarAdj('shots',-1)">−</button>
+          <input type="number" id="ivar-m-shots" min="0" value="0" oninput="ivarMShotsInput()" style="width:72px;" />
+          <button class="cnt-btn" onclick="ivarAdj('shots',1)">+</button>
+        </div>
+        <span class="cnt-hint">shots on goal</span>
       </div>
-    </div>
-
-    <hr class="divider" />
-
-    <div class="breakdown" id="ivar-breakdown">
-      <div class="breakdown-row">
-        <span class="lbl" id="ivar-saves-lbl">0 saves × 10 R</span>
-        <span class="amt" id="ivar-saves-amt">0 R</span>
+      <div class="save-pct" id="ivar-m-svpct"></div>
+      <div class="section-label">Bonuses</div>
+      <div class="toggle-row">
+        <div class="toggle-card" id="ivar-m-win-card" onclick="ivarToggleM('win')">
+          <div class="toggle-lbl">Team win</div>
+          <div class="toggle-val" id="ivar-m-win-val">Tap to add +150 R</div>
+        </div>
+        <div class="toggle-card" id="ivar-m-shutout-card" onclick="ivarToggleM('shutout')">
+          <div class="toggle-lbl">Shutout</div>
+          <div class="toggle-val" id="ivar-m-shutout-val">Tap to add +100 R</div>
+        </div>
       </div>
-      <div class="breakdown-row bonus" id="ivar-win-line" style="display:none;">
-        <span class="lbl">Win bonus</span><span class="amt">+150 R</span>
+      <hr class="divider" />
+      <div class="breakdown">
+        <div class="breakdown-row">
+          <span class="lbl" id="ivar-m-saves-lbl">0 saves × 10 R</span>
+          <span class="amt" id="ivar-m-saves-amt">0 R</span>
+        </div>
+        <div class="breakdown-row bonus" id="ivar-m-win-line" style="display:none;">
+          <span class="lbl">Win bonus</span><span class="amt">+150 R</span>
+        </div>
+        <div class="breakdown-row bonus" id="ivar-m-shutout-line" style="display:none;">
+          <span class="lbl">Shutout bonus</span><span class="amt">+100 R</span>
+        </div>
+        <div class="breakdown-row total">
+          <span class="lbl">Game total</span>
+          <span class="amt" id="ivar-m-game-total">0 R</span>
+        </div>
       </div>
-      <div class="breakdown-row bonus" id="ivar-shutout-line" style="display:none;">
-        <span class="lbl">Shutout bonus</span><span class="amt">+100 R</span>
+      <hr class="divider" />
+      <div class="section-label">Tournament running total</div>
+      <div class="summary-grid">
+        <div class="summary-card"><div class="s-lbl">Total saves</div><div class="s-val" id="ivar-m-t-saves">0</div></div>
+        <div class="summary-card"><div class="s-lbl">Wins</div><div class="s-val" id="ivar-m-t-wins">0</div></div>
+        <div class="summary-card"><div class="s-lbl">Shutouts</div><div class="s-val" id="ivar-m-t-shutouts">0</div></div>
+        <div class="summary-card"><div class="s-lbl">Robux earned</div><div class="s-val" id="ivar-m-t-total">0 R</div></div>
       </div>
-      <div class="breakdown-row total">
-        <span class="lbl">Game total</span>
-        <span class="amt" id="ivar-game-total">0 R</span>
+      <hr class="divider" />
+      <div class="section-label">Tournament completion</div>
+      <div class="completion-banner" id="ivar-m-completion-card" onclick="ivarToggleM('completion')">
+        <div class="toggle-lbl">Played every game — no backup, no days off</div>
+        <div class="toggle-val" id="ivar-m-completion-val">Tap to unlock +250 R bonus</div>
       </div>
-    </div>
-
-    <hr class="divider" />
-
-    <div class="section-label">Tournament running total</div>
-    <div class="summary-grid">
-      <div class="summary-card"><div class="s-lbl">Total saves</div><div class="s-val" id="ivar-t-saves">0</div></div>
-      <div class="summary-card"><div class="s-lbl">Wins</div><div class="s-val" id="ivar-t-wins">0</div></div>
-      <div class="summary-card"><div class="s-lbl">Shutouts</div><div class="s-val" id="ivar-t-shutouts">0</div></div>
-      <div class="summary-card"><div class="s-lbl">Robux earned</div><div class="s-val" id="ivar-t-total">0 R</div></div>
-    </div>
-
-    <hr class="divider" />
-
-    <div class="section-label">Tournament completion</div>
-    <div class="completion-banner" id="ivar-completion-card" onclick="ivarToggle('completion')">
-      <div class="toggle-lbl">Played every game — no backup, no days off</div>
-      <div class="toggle-val" id="ivar-completion-val">Tap to unlock +250 R bonus</div>
-    </div>
-
-    <div class="breakdown" id="ivar-completion-breakdown" style="display:none;">
-      <div class="breakdown-row"><span class="lbl">Saves earnings</span><span class="amt" id="ivar-f-saves">0 R</span></div>
-      <div class="breakdown-row bonus" id="ivar-f-wins-row" style="display:none;"><span class="lbl">Win bonuses</span><span class="amt" id="ivar-f-wins">+0 R</span></div>
-      <div class="breakdown-row bonus" id="ivar-f-shutouts-row" style="display:none;"><span class="lbl">Shutout bonuses</span><span class="amt" id="ivar-f-shutouts">+0 R</span></div>
-      <div class="breakdown-row completion-row"><span class="lbl">Completion bonus</span><span class="amt">+250 R</span></div>
-      <div class="breakdown-row total"><span class="lbl">Grand total</span><span class="amt" id="ivar-grand-total">0 R</span></div>
+      <div class="breakdown" id="ivar-m-completion-breakdown" style="display:none;">
+        <div class="breakdown-row"><span class="lbl">Saves earnings</span><span class="amt" id="ivar-m-f-saves">0 R</span></div>
+        <div class="breakdown-row bonus" id="ivar-m-f-wins-row" style="display:none;"><span class="lbl">Win bonuses</span><span class="amt" id="ivar-m-f-wins">+0 R</span></div>
+        <div class="breakdown-row bonus" id="ivar-m-f-shutouts-row" style="display:none;"><span class="lbl">Shutout bonuses</span><span class="amt" id="ivar-m-f-shutouts">+0 R</span></div>
+        <div class="breakdown-row completion-row"><span class="lbl">Completion bonus</span><span class="amt">+250 R</span></div>
+        <div class="breakdown-row total"><span class="lbl">Grand total</span><span class="amt" id="ivar-m-grand-total">0 R</span></div>
+      </div>
     </div>
   </div>
 
@@ -584,6 +669,7 @@ function setSyncError() {
 // ---- PIN LOGIC ----
 const PIN_DOC = doc(db, 'gameface', 'config');
 const IVAR_DOC = doc(db, 'gameface', 'ivar');
+const MAYHEM_DOC = doc(db, 'gameface', 'ivar_mayhem');
 const EMMA_DOC = doc(db, 'gameface', 'emma');
 
 let pinBuffer = '';
@@ -694,39 +780,77 @@ let ivarData = {
   games: Array.from({length:5}, () => ({saves:0, shots:0, win:false, shutout:false})),
   completion: false
 };
+let mayhemData = {
+  games: Array.from({length:6}, () => ({saves:0, shots:0, win:false, shutout:false})),
+  completion: false
+};
 let ivarGame = 1;
+let ivarTourn = 't1'; // 't1' or 'mayhem'
 let ivarSaving = false;
 
-function ivarG() { return ivarData.games[ivarGame-1]; }
+function ivarG() {
+  return ivarTourn === 'mayhem' ? mayhemData.games[ivarGame-1] : ivarData.games[ivarGame-1];
+}
+
+window.ivarSwitchTourn = function(tourn, el) {
+  ivarTourn = tourn;
+  ivarGame = 1;
+  document.querySelectorAll('.tourn-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tourn-panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('ivar-panel-' + tourn).classList.add('active');
+  if (tourn === 't1') {
+    document.querySelectorAll('#ivar-game-tabs .gtab').forEach((t,i) => t.classList.toggle('active', i===0));
+    document.getElementById('ivar-saves').value = ivarG().saves;
+    document.getElementById('ivar-shots').value = ivarG().shots;
+  } else {
+    document.querySelectorAll('#ivar-mayhem-tabs .gtab').forEach((t,i) => t.classList.toggle('active', i===0));
+    document.getElementById('ivar-m-saves').value = ivarG().saves;
+    document.getElementById('ivar-m-shots').value = ivarG().shots;
+  }
+  ivarRender();
+};
 
 async function ivarSave() {
   if (ivarSaving) return;
   ivarSaving = true;
   setSyncing();
   try {
-    await setDoc(IVAR_DOC, ivarData);
+    if (ivarTourn === 'mayhem') {
+      await setDoc(MAYHEM_DOC, mayhemData);
+    } else {
+      await setDoc(IVAR_DOC, ivarData);
+    }
     setSynced();
   } catch(e) { setSyncError(); }
   ivarSaving = false;
 }
 
-window.ivarSetGame = function(n, el) {
+window.ivarSetGame = function(n, el, tourn) {
   ivarGame = n;
-  document.querySelectorAll('#ivar-game-tabs .gtab').forEach(t => t.classList.remove('active'));
+  var tabsId = tourn === 'mayhem' ? '#ivar-mayhem-tabs .gtab' : '#ivar-game-tabs .gtab';
+  document.querySelectorAll(tabsId).forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  document.getElementById('ivar-saves').value = ivarG().saves;
-  document.getElementById('ivar-shots').value = ivarG().shots;
+  if (tourn === 'mayhem') {
+    document.getElementById('ivar-m-saves').value = ivarG().saves;
+    document.getElementById('ivar-m-shots').value = ivarG().shots;
+  } else {
+    document.getElementById('ivar-saves').value = ivarG().saves;
+    document.getElementById('ivar-shots').value = ivarG().shots;
+  }
   ivarRender();
 };
 
 window.ivarAdj = function(field, d) {
   if (field === 'saves') {
     ivarG().saves = Math.max(0, ivarG().saves + d);
-    document.getElementById('ivar-saves').value = ivarG().saves;
+    var sid = ivarTourn === 'mayhem' ? 'ivar-m-saves' : 'ivar-saves';
+    document.getElementById(sid).value = ivarG().saves;
     ivarAutoShutout();
   } else if (field === 'shots') {
     ivarG().shots = Math.max(0, ivarG().shots + d);
-    document.getElementById('ivar-shots').value = ivarG().shots;
+    var sid = ivarTourn === 'mayhem' ? 'ivar-m-shots' : 'ivar-shots';
+    document.getElementById(sid).value = ivarG().shots;
   }
   ivarRender(); ivarSave();
 };
@@ -736,8 +860,18 @@ window.ivarSavesInput = function() {
   ivarAutoShutout(); ivarRender(); ivarSave();
 };
 
+window.ivarMSavesInput = function() {
+  ivarG().saves = Math.max(0, parseInt(document.getElementById('ivar-m-saves').value)||0);
+  ivarAutoShutout(); ivarRender(); ivarSave();
+};
+
 window.ivarShotsInput = function() {
   ivarG().shots = Math.max(0, parseInt(document.getElementById('ivar-shots').value)||0);
+  ivarRender(); ivarSave();
+};
+
+window.ivarMShotsInput = function() {
+  ivarG().shots = Math.max(0, parseInt(document.getElementById('ivar-m-shots').value)||0);
   ivarRender(); ivarSave();
 };
 
@@ -747,11 +881,14 @@ function ivarAutoShutout() {
 }
 
 window.ivarToggle = function(field) {
-  if (field === 'completion') {
-    ivarData.completion = !ivarData.completion;
-  } else {
-    ivarG()[field] = !ivarG()[field];
-  }
+  if (field === 'completion') { ivarData.completion = !ivarData.completion; }
+  else { ivarG()[field] = !ivarG()[field]; }
+  ivarRender(); ivarSave();
+};
+
+window.ivarToggleM = function(field) {
+  if (field === 'completion') { mayhemData.completion = !mayhemData.completion; }
+  else { ivarG()[field] = !ivarG()[field]; }
   ivarRender(); ivarSave();
 };
 
@@ -762,43 +899,49 @@ function ivarGameTotal(gm) {
   return t;
 }
 
-function ivarRender() {
+function ivarRenderTourn(pfx, data, gameList) {
   var gm = ivarG();
-  document.getElementById('ivar-saves-lbl').textContent = gm.saves + ' saves × 10 R';
-  document.getElementById('ivar-saves-amt').textContent = (gm.saves*10) + ' R';
-  document.getElementById('ivar-game-total').textContent = ivarGameTotal(gm) + ' R';
-  document.getElementById('ivar-win-line').style.display = gm.win ? '' : 'none';
-  document.getElementById('ivar-shutout-line').style.display = gm.shutout ? '' : 'none';
-  document.getElementById('ivar-win-card').className = 'toggle-card' + (gm.win ? ' active-win' : '');
-  document.getElementById('ivar-shutout-card').className = 'toggle-card' + (gm.shutout ? ' active-shutout' : '');
-  document.getElementById('ivar-win-val').textContent = gm.win ? 'Win! +150 R earned' : 'Tap to add +150 R';
-  document.getElementById('ivar-shutout-val').textContent = gm.shutout ? 'Shutout! +100 R earned' : 'Tap to add +100 R';
-  var pct = document.getElementById('ivar-svpct');
-  pct.textContent = (gm.shots > 0 && gm.saves <= gm.shots) ? 'Save %: ' + (gm.saves/gm.shots*100).toFixed(1) + '%' : '';
-
-  var tSaves=0, tWins=0, tShutouts=0, tSavesR=0, tWinsR=0, tShoutR=0, tTotal=0;
-  ivarData.games.forEach(function(gx) {
-    tSaves += gx.saves; tSavesR += gx.saves*10;
-    if (gx.win) { tWins++; tWinsR+=150; }
-    if (gx.shutout) { tShutouts++; tShoutR+=100; }
-    tTotal += ivarGameTotal(gx);
+  document.getElementById(pfx+'saves-lbl').textContent = gm.saves + ' saves × 10 R';
+  document.getElementById(pfx+'saves-amt').textContent = (gm.saves*10) + ' R';
+  document.getElementById(pfx+'game-total').textContent = ivarGameTotal(gm) + ' R';
+  document.getElementById(pfx+'win-line').style.display = gm.win ? '' : 'none';
+  document.getElementById(pfx+'shutout-line').style.display = gm.shutout ? '' : 'none';
+  document.getElementById(pfx+'win-card').className = 'toggle-card' + (gm.win ? ' active-win' : '');
+  document.getElementById(pfx+'shutout-card').className = 'toggle-card' + (gm.shutout ? ' active-shutout' : '');
+  document.getElementById(pfx+'win-val').textContent = gm.win ? 'Win! +150 R earned' : 'Tap to add +150 R';
+  document.getElementById(pfx+'shutout-val').textContent = gm.shutout ? 'Shutout! +100 R earned' : 'Tap to add +100 R';
+  var pctEl = document.getElementById(pfx+'svpct');
+  pctEl.textContent = (gm.shots > 0 && gm.saves <= gm.shots) ? 'Save %: ' + (gm.saves/gm.shots*100).toFixed(1) + '%' : '';
+  var tSaves=0,tWins=0,tShutouts=0,tSavesR=0,tWinsR=0,tShoutR=0,tTotal=0;
+  gameList.forEach(function(gx) {
+    tSaves+=gx.saves; tSavesR+=gx.saves*10;
+    if(gx.win){tWins++;tWinsR+=150;}
+    if(gx.shutout){tShutouts++;tShoutR+=100;}
+    tTotal+=ivarGameTotal(gx);
   });
-  document.getElementById('ivar-t-saves').textContent = tSaves;
-  document.getElementById('ivar-t-wins').textContent = tWins;
-  document.getElementById('ivar-t-shutouts').textContent = tShutouts;
-  document.getElementById('ivar-t-total').textContent = tTotal + ' R';
-
-  var comp = ivarData.completion;
-  document.getElementById('ivar-completion-card').className = 'completion-banner' + (comp ? ' active' : '');
-  document.getElementById('ivar-completion-val').textContent = comp ? 'Bonus unlocked! +250 R earned' : 'Tap to unlock +250 R bonus';
-  document.getElementById('ivar-completion-breakdown').style.display = comp ? '' : 'none';
+  document.getElementById(pfx+'t-saves').textContent = tSaves;
+  document.getElementById(pfx+'t-wins').textContent = tWins;
+  document.getElementById(pfx+'t-shutouts').textContent = tShutouts;
+  document.getElementById(pfx+'t-total').textContent = tTotal + ' R';
+  var comp = data.completion;
+  document.getElementById(pfx+'completion-card').className = 'completion-banner' + (comp ? ' active' : '');
+  document.getElementById(pfx+'completion-val').textContent = comp ? 'Bonus unlocked! +250 R earned' : 'Tap to unlock +250 R bonus';
+  document.getElementById(pfx+'completion-breakdown').style.display = comp ? '' : 'none';
   if (comp) {
-    document.getElementById('ivar-f-saves').textContent = tSavesR + ' R';
-    document.getElementById('ivar-f-wins-row').style.display = tWins > 0 ? '' : 'none';
-    document.getElementById('ivar-f-shutouts-row').style.display = tShutouts > 0 ? '' : 'none';
-    document.getElementById('ivar-f-wins').textContent = '+' + tWinsR + ' R';
-    document.getElementById('ivar-f-shutouts').textContent = '+' + tShoutR + ' R';
-    document.getElementById('ivar-grand-total').textContent = (tTotal+250) + ' R';
+    document.getElementById(pfx+'f-saves').textContent = tSavesR + ' R';
+    document.getElementById(pfx+'f-wins-row').style.display = tWins > 0 ? '' : 'none';
+    document.getElementById(pfx+'f-shutouts-row').style.display = tShutouts > 0 ? '' : 'none';
+    document.getElementById(pfx+'f-wins').textContent = '+' + tWinsR + ' R';
+    document.getElementById(pfx+'f-shutouts').textContent = '+' + tShoutR + ' R';
+    document.getElementById(pfx+'grand-total').textContent = (tTotal+250) + ' R';
+  }
+}
+
+function ivarRender() {
+  if (ivarTourn === 'mayhem') {
+    ivarRenderTourn('ivar-m-', mayhemData, mayhemData.games);
+  } else {
+    ivarRenderTourn('ivar-', ivarData, ivarData.games);
   }
 }
 
@@ -971,8 +1114,23 @@ function startListeners() {
       var d = snap.data();
       if (d.games) ivarData.games = d.games;
       if (typeof d.completion === 'boolean') ivarData.completion = d.completion;
-      document.getElementById('ivar-saves').value = ivarG().saves;
-      document.getElementById('ivar-shots').value = ivarG().shots;
+      if (ivarTourn === 't1') {
+        document.getElementById('ivar-saves').value = ivarG().saves;
+        document.getElementById('ivar-shots').value = ivarG().shots;
+      }
+      ivarRender();
+    }
+  }, () => setSyncError());
+
+  onSnapshot(MAYHEM_DOC, snap => {
+    if (snap.exists()) {
+      var d = snap.data();
+      if (d.games) mayhemData.games = d.games;
+      if (typeof d.completion === 'boolean') mayhemData.completion = d.completion;
+      if (ivarTourn === 'mayhem') {
+        document.getElementById('ivar-m-saves').value = ivarG().saves;
+        document.getElementById('ivar-m-shots').value = ivarG().shots;
+      }
       ivarRender();
     }
   }, () => setSyncError());
